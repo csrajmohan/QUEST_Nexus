@@ -1,0 +1,534 @@
+package quest;
+/*
+ * This file contains main function of QUEST.
+ * It initializes all all panel object used in tabbed pane.
+ */
+
+import iisc.dsl.picasso.server.PicassoException;
+import iisc.dsl.picasso.server.query.Query;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.font.TextAttribute;
+import java.io.File;
+import java.net.URL;
+import java.util.Arrays;
+
+import javax.imageio.ImageIO;
+import javax.swing.*; 
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+public class MainFrame implements ActionListener, ChangeListener, WindowListener
+{
+	AllObjects allObjects;
+	
+	JFrame frame;
+	
+	JTabbedPane allTabs;
+
+	JPanel listPanel;
+
+	JButton btnEnter;
+	
+	JTextArea queryInputTextArea;
+
+	JTextField path;
+	JCheckBox chkBoxPicasso;
+	public boolean tabbedPaneOpenFirstTime[];
+	public MainFrame()
+	{
+		/*
+		 * AllObject is initialized.
+		 */
+		allObjects = new AllObjects();
+		allObjects.setMainFrameObj(this);
+		
+		/*
+		 * Database connection object is created.
+		 */
+		ConnectDB connectDBObj = new ConnectDB(allObjects);
+		connectDBObj.connectDB();
+		
+		/*
+		 * Getting resolution of screen
+		 */
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		QUESTConstants.SCREEN_WIDTH = screenSize.getWidth();
+		QUESTConstants.SCREEN_HEIGHT = screenSize.getHeight();
+		
+		/*
+		 * Based on screen resolution other components' size is decided.
+		 */
+		QUESTConstants.HEAD_PANEL_HEIGHT = (int)QUESTConstants.SCREEN_HEIGHT / 17;
+		QUESTConstants.INPUT_PANEL_HEIGHT = (int)QUESTConstants.SCREEN_HEIGHT / 25;
+		QUESTConstants.STATUS_PANEL_HEIGHT = (int)QUESTConstants.SCREEN_HEIGHT / 34;
+		QUESTConstants.STATUS_PANEL_FONT_SIZE = QUESTConstants.STATUS_PANEL_HEIGHT/2;
+	}
+	public static void main(String args[])
+	{
+		/* show splash screen before main window */
+//		try 
+//		{
+//            UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
+//        } 
+//		catch (Exception e) {
+//            System.out.println("Unable to load required look and feel");
+//        }
+//        new SplashScreen().setVisible(true);
+        
+        MainFrame obj = new MainFrame();
+		obj.mainFrame();
+		
+	}
+	void mainFrame()
+	{
+		int headPanelFont;
+		
+		headPanelFont = (int)(QUESTConstants.HEAD_PANEL_HEIGHT * 0.4);
+		
+		URL 		dslurl; 
+		URL			iiscurl = null;
+		
+		Image 		dslLogoImage=null;
+		Image 		iiscLogoImage=null;
+		try 
+		{ 
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		
+		/*
+		 * path of DSL and IISc logo is given.
+		 */
+		try
+		{
+			dslurl = getClass().getClassLoader().getResource("images/DSLLogo.png");
+			iiscurl = getClass().getClassLoader().getResource("images/iisc_logo.jpeg");
+			
+			dslLogoImage = ImageIO.read(new File(dslurl.getPath()));
+		    dslLogoImage = dslLogoImage.getScaledInstance(-1, QUESTConstants.HEAD_PANEL_HEIGHT, Image.SCALE_SMOOTH);
+		    
+		    iiscLogoImage = ImageIO.read(new File(iiscurl.getPath()));
+		    iiscLogoImage = iiscLogoImage.getScaledInstance(-1, QUESTConstants.HEAD_PANEL_HEIGHT, Image.SCALE_SMOOTH);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		JLabel 	dsl; 
+		JLabel	iisc;
+		
+		dsl=new JLabel(new ImageIcon(dslLogoImage));
+		iisc=new JLabel(new ImageIcon(iiscLogoImage));
+		
+		
+		JLabel nameLabel = new JLabel("QUEST (QUery Execution without Selectivity esTimation)");
+		nameLabel.setFont(new Font(QUESTConstants.TEXT_FONT, Font.BOLD, headPanelFont));
+		nameLabel.setForeground(Color.WHITE);
+		nameLabel.setToolTipText("QUEST for PostgreSQL9.3.4");
+		
+		/*
+		 * head panel is top panel that contains two logo and QUEST title.
+		 */
+		JPanel headPanel = new JPanel();
+		
+		headPanel.setBackground(new Color(QUESTConstants.backgroundColor1));
+		headPanel.setPreferredSize(new Dimension(100,QUESTConstants.HEAD_PANEL_HEIGHT));		//for demo
+//		headPanel.setPreferredSize(new Dimension(100,60));
+		headPanel.setLayout(new BoxLayout(headPanel, BoxLayout.X_AXIS));
+		
+		headPanel.add(dsl);
+		headPanel.add(Box.createGlue());
+		headPanel.add(nameLabel);
+		headPanel.add(Box.createGlue());
+		headPanel.add(iisc);
+		
+		btnEnter = QUESTUtility.createButton("Start Quest", QUESTConstants.BUTTON_FONT_SIZE);
+		btnEnter.addActionListener(this);
+		btnEnter.setEnabled(true);
+
+        chkBoxPicasso = new JCheckBox("Picasso");
+		chkBoxPicasso.setSelected(true);
+		/*
+		 * list panel contains two input buttons and list for selectivities.
+		 */
+		listPanel = new JPanel();
+		listPanel.setPreferredSize(new Dimension(150, 300));
+//		listPanel.setMaximumSize(listPanel.getPreferredSize());
+		listPanel.setBackground(new Color(QUESTConstants.backgroundColor2));
+		listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+
+		listPanel.add(Box.createGlue());
+		listPanel.add(btnEnter);
+		listPanel.add(Box.createGlue());
+		listPanel.add(chkBoxPicasso);
+				
+		/*
+		 * query input text is initialized.
+		 */
+		queryInputTextArea = new JTextArea("Enter SQL query",5,100);
+		queryInputTextArea.setFont(new Font("Serif", Font.PLAIN, 22));
+		queryInputTextArea.setLineWrap(true);
+		queryInputTextArea.selectAll();
+//		String str_query = "select \n" + 
+//				"n_name,\n" +
+//				"sum(l_extendedprice * (1 - l_discount)) as revenue \n"+ 
+//			"from \n" +
+//				"customer,	orders, lineitem, supplier,	nation, region \n"+ 
+//			"where \n" +
+//				"c_custkey = o_custkey \n"+ 
+//				"and l_orderkey = o_orderkey \n"+ 
+//				"and l_suppkey = s_suppkey \n" 	+
+//				"and c_nationkey = s_nationkey \n" + 
+//				"and s_nationkey = n_nationkey \n" +
+//				"and n_regionkey = r_regionkey \n" +
+//				"and (r_name='ASIA' or r_name='AFRICA') \n"+ 
+//				"and o_orderdate >= date '1994-01-01' \n" +
+//				"and o_orderdate < date '1994-01-01' + interval '1 year' \n"+ 
+//				"and l_shipdate <= l_receiptdate \n" +
+//				"and l_commitdate <= l_shipdate + integer '90' \n"+ 
+//				"and l_extendedprice <= 20000 \n" +
+//				"and substring(c_name from 1 for 4) = 'Cust' \n" +
+//				"and c_acctbal <=4500 \n" +
+//				"group by \n" + 
+//				"n_name \n" + 
+//				"order by \n" + 
+//				"revenue desc";
+		String str_query = "select n_name, sum(l_extendedprice * (1 - l_discount)) as revenue from customer, orders, lineitem,	supplier, nation, region where c_custkey = o_custkey" +
+				" and l_orderkey = o_orderkey and l_suppkey = s_suppkey and c_nationkey = s_nationkey and s_nationkey = n_nationkey	and n_regionkey = r_regionkey and r_name = 'ASIA' " +
+				" and o_orderdate >= '1994-01-01' and o_orderdate < '1995-01-01' and c_acctbal :varies and s_acctbal :varies group by n_name order by revenue desc";
+				
+				
+		queryInputTextArea.setText(str_query);
+		
+		JScrollPane queryInputScrollPanel = new JScrollPane(queryInputTextArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		queryInputScrollPanel.setMaximumSize(new Dimension(1500, 600));
+		
+		/*
+		 * query panel top panel that contains list panel and query input text area.
+		 */
+		JPanel queryPanel = new JPanel();
+		queryPanel.setBackground(new Color(QUESTConstants.backgroundColor2));
+		queryPanel.setLayout(new BorderLayout());
+		
+		queryPanel.add(BorderLayout.WEST, listPanel);
+	
+		queryPanel.add(BorderLayout.CENTER, queryInputScrollPanel);
+		
+
+		
+		allTabs = new JTabbedPane();
+		Border roundedBorder = new LineBorder(Color.BLACK, 2, true);
+		allTabs.setBorder(roundedBorder);
+
+		
+		NativeOptimizerPanel natOptObj = new NativeOptimizerPanel(allObjects);
+		CostDiagramPanel costDigObj = new CostDiagramPanel(allObjects);
+		BouquetPanel bouquetPanelObj = new BouquetPanel(allObjects);
+		PerformanceComparisionPanel execResultPanelObj = new PerformanceComparisionPanel(allObjects);
+		
+		
+		JPanel bouquetPanel = new JPanel();
+		bouquetPanel.setLayout(new BorderLayout());
+		allTabs.addTab("Query Input", queryPanel);
+		allTabs.addTab("                       ", new JPanel());
+		allTabs.addTab("Native Sub-optimality", natOptObj.mainPanel);
+		allTabs.addTab("                       ", new JPanel());
+		allTabs.addTab("Bouquet Identification", costDigObj.mainPanel);
+		allTabs.addTab("Bouquet Execution", bouquetPanelObj.mainPanel);
+		allTabs.addTab("Performance Comparison", execResultPanelObj.mainPanel);
+
+		allTabs.setEnabledAt(QUESTConstants.EMPTY_PANE1, false);
+		allTabs.setEnabledAt(QUESTConstants.NATIVE_PANE, false);
+		allTabs.setEnabledAt(QUESTConstants.EMPTY_PANE2, false);
+		allTabs.setEnabledAt(QUESTConstants.BOUQUET_IDNT_PANE, false);
+		allTabs.setEnabledAt(QUESTConstants.BOUQUET_PANE, false);
+		allTabs.setEnabledAt(QUESTConstants.RESULT_PANE, false);
+		allTabs.setFont(new Font("Arial",Font.BOLD,14));  // set from 18 to 14 to handle laptop resolution issue
+		allTabs.addChangeListener(this);
+		tabbedPaneOpenFirstTime = new boolean[QUESTConstants.TOTAL_PANE];
+		
+		Arrays.fill(tabbedPaneOpenFirstTime, true);
+		
+		frame = new JFrame("QUEST");
+		
+		/* added by rajmohan in july 2014 */
+		/* gives default focus of window to textarea at startup so that query
+		 * can be entered easily */
+		frame.addWindowListener( new WindowAdapter() 
+		{
+			 public void windowActivated(WindowEvent e) 
+			 {
+				 queryInputTextArea.requestFocus();
+	         }
+		}
+		);
+
+		frame.setLayout(new BorderLayout());
+		frame.add(BorderLayout.NORTH, headPanel);
+		frame.add(BorderLayout.CENTER, allTabs); 
+		frame.setVisible(true);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		if(QUESTConstants.MAXIMISE_WINDOW)
+//			frame.setExtendedState(frame.getExtendedState() | JFrame.MAXIMIZED_BOTH);
+			frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+		else
+			frame.setSize(QUESTConstants.FRAME_WIDTH, QUESTConstants.FRAME_HEIGHT);
+		
+		
+		/* sets Logo Image for Main window */
+		if(iiscurl != null)
+			frame.setIconImage((new ImageIcon(iiscurl)).getImage());    /* added by rajmohan in july 2014 */
+		
+		frame.addWindowListener(this);
+	}
+	
+	public void actionPerformed(ActionEvent e)
+	{
+		if(e.getSource() == btnEnter)
+		{			
+			ConnectDB connectDBObj = allObjects.getConnectDBObj();
+			if(connectDBObj.connection != null)
+			{
+				if(chkBoxPicasso.isSelected())
+				{
+					JOptionPane.showConfirmDialog(null,"in picasso mode","hi", JOptionPane.OK_CANCEL_OPTION);
+					String rawQuery = queryInputTextArea.getText();
+//					String query = str.replaceAll("[\\t\\n\\r]+", " ");
+//					ContoursIdentification.invokeContourGenerator(allObjects, rawQuery);
+//					Contours.invokeContourGenerator(allObjects, rawQuery);
+				}
+				else
+				{
+					boolean is_query_valid = analyse_query();
+					if(is_query_valid)
+					{
+						Chooser frame = new Chooser();
+						check_bouquet_validity(frame.fileName);
+					}
+				}
+			}
+			else
+			{
+				int result = JOptionPane.showConfirmDialog(null,"Restart server and click ok to try again","Error: Server connection failed", JOptionPane.OK_CANCEL_OPTION);
+				if(result == JOptionPane.OK_OPTION)
+				{
+					connectDBObj = new ConnectDB(allObjects);
+					connectDBObj.connectDB();
+				}
+			}
+		
+		}
+	}
+	
+	/* added by Rajmohan in july 2014 */
+	/* analyses whether given query is valid by checking in PostgreSQL DB */
+	private boolean analyse_query()
+	{
+		String str = queryInputTextArea.getText();
+		String query = str.replaceAll("[\\t\\n\\r]+", " ");
+		
+		if(query.equalsIgnoreCase("Enter SQL query") || query.equals(""))
+		{
+			JOptionPane.showMessageDialog(new JFrame(), "Please enter the query", "Warning", JOptionPane.WARNING_MESSAGE);
+		}
+		else
+		{
+			/*
+			 * BouquetData contains all data related to bouquet such as dimension, resolution apkt packet etc.
+			 */
+			BouquetData bouquetDataObj = new BouquetData();
+			allObjects.setBouquetDataObj(bouquetDataObj);
+			bouquetDataObj.setQuery(query);
+			
+			/*
+			 * Here
+			 */
+			ParseQuery parseQueryObj = new ParseQuery();
+			boolean successful = parseQueryObj.parseQuery(query, allObjects);
+			
+			if(successful)
+			{
+//				JScrollPane listScrollPane = parseQueryObj.listScrollPanel;
+//				listScrollPane.setMaximumSize(new Dimension(430,400));
+
+				listPanel.revalidate();
+				
+				allTabs.setEnabledAt(QUESTConstants.EMPTY_PANE1, false);
+				allTabs.setEnabledAt(QUESTConstants.NATIVE_PANE, false);
+				allTabs.setEnabledAt(QUESTConstants.EMPTY_PANE2, false);
+				allTabs.setEnabledAt(QUESTConstants.BOUQUET_IDNT_PANE, false);
+				allTabs.setEnabledAt(QUESTConstants.BOUQUET_PANE, false);
+				allTabs.setEnabledAt(QUESTConstants.RESULT_PANE, false);
+				
+				Arrays.fill(tabbedPaneOpenFirstTime, true);
+				return true;
+			}
+			else
+			{
+				JOptionPane.showMessageDialog(new JFrame(), "Invalid Query", "Error", JOptionPane.ERROR_MESSAGE);
+			}
+		}
+		return false;
+	}
+	
+	/* added by Rajmohan in july 2014 */
+	/* Checks whether valid bouquet .apkt file is chosen. If not shows error message */
+	private void check_bouquet_validity(String bouPath)
+	{
+		if(bouPath!=null && !bouPath.equals("") && bouPath.toLowerCase().contains(".apkt"))
+		{
+			int index = bouPath.indexOf('.');
+			bouPath = bouPath.substring(0, index);
+
+			BouquetData bouquetDataObj = allObjects.getBouquetDataObj();
+			bouquetDataObj.setBouquetLocation(bouPath);
+			try
+			{
+				BouquetDriver bouquetDriverObj = new BouquetDriver(allObjects);
+				boolean result = bouquetDriverObj.readBouquetData(allObjects);
+				if(result)
+				{
+					allTabs.setEnabledAt(QUESTConstants.NATIVE_PANE, true);
+					if(!bouPath.endsWith("dummy"))                  // do not enable Bouquet Identification in this case
+						allTabs.setEnabledAt(QUESTConstants.BOUQUET_IDNT_PANE, true);
+					
+					allTabs.setEnabledAt(QUESTConstants.BOUQUET_PANE, false);
+					allTabs.setEnabledAt(QUESTConstants.RESULT_PANE, false);
+					int dimension = bouquetDataObj.getDimension();
+					double queryValues[]= new double [dimension];
+					queryValues[0]=2400;				
+					queryValues[1]=20000;
+					bouquetDataObj.setQueryValues(queryValues);
+					
+					/* this enables modifiying query at run time easily 
+					 * added by rajmohan on aug 23, 2014 */
+					tabbedPaneOpenFirstTime[QUESTConstants.NATIVE_PANE] = true;
+					tabbedPaneOpenFirstTime[QUESTConstants.BOUQUET_IDNT_PANE] = true;
+					tabbedPaneOpenFirstTime[QUESTConstants.BOUQUET_PANE] = true;
+					tabbedPaneOpenFirstTime[QUESTConstants.RESULT_PANE] = true;
+				}
+				else
+				{
+					JOptionPane.showMessageDialog(new JFrame(),
+							"Packets having more than two error prone selectivities. QUEST execute query for two error prone selectivity.",
+							"Warning",
+							JOptionPane.WARNING_MESSAGE);
+				}
+			}
+			catch(Exception ex)
+			{
+				System.out.println("Execption occured in findBouquet:");
+				ex.printStackTrace();
+			}
+		}
+		else
+		{
+			JOptionPane.showMessageDialog(new JFrame(),
+				    "Invalid File Path.",
+				    "Warning",
+				    JOptionPane.WARNING_MESSAGE);
+		}
+	}
+	
+	public void stateChanged(ChangeEvent e)
+	{
+		if(allTabs.getSelectedIndex() == QUESTConstants.NATIVE_PANE)
+		{
+			if(tabbedPaneOpenFirstTime[QUESTConstants.NATIVE_PANE])
+			{
+				NativeOptimizerPanel nativeOptimizerPanelObj = allObjects.getNativeOptimizerPanelObj();
+				nativeOptimizerPanelObj.addComponentsToPanel(allObjects);
+				tabbedPaneOpenFirstTime[QUESTConstants.NATIVE_PANE] = false;
+			}
+		}
+		if(allTabs.getSelectedIndex() == QUESTConstants.BOUQUET_IDNT_PANE)
+		{
+			if(tabbedPaneOpenFirstTime[QUESTConstants.BOUQUET_IDNT_PANE])
+			{
+				CostDiagramPanel costDigObj = allObjects.getCostDiagramPanelObj();
+				costDigObj.addComponentsToPanel(allObjects);
+				tabbedPaneOpenFirstTime[QUESTConstants.BOUQUET_IDNT_PANE] = false;
+			}
+		}
+		else if(allTabs.getSelectedIndex() == QUESTConstants.BOUQUET_PANE)
+		{
+			if(tabbedPaneOpenFirstTime[QUESTConstants.BOUQUET_PANE])
+			{
+				BouquetPanel bouquetPanelObj = allObjects.getBouquetPanelObj();
+				bouquetPanelObj.initializePanel(allObjects);
+				bouquetPanelObj.addComponentsToPanel(allObjects);
+				tabbedPaneOpenFirstTime[QUESTConstants.BOUQUET_PANE] = false;
+			}
+		}
+		else if(allTabs.getSelectedIndex() == QUESTConstants.RESULT_PANE)
+		{
+			if(tabbedPaneOpenFirstTime[QUESTConstants.RESULT_PANE])
+			{
+				PerformanceComparisionPanel execResultPanelObj = allObjects.getExecutionResultPanelObj();
+				execResultPanelObj.showResultBarGraph();
+				tabbedPaneOpenFirstTime[QUESTConstants.RESULT_PANE] = false;
+			}
+		}
+	}
+	public void windowClosing(WindowEvent e)
+	{
+		/* When Quest is exiting, disconnect DB */
+		ConnectDB connectDBObj = allObjects.getConnectDBObj();
+		if(connectDBObj.connection != null)
+			connectDBObj.disconnectDB();
+	}
+	public void windowDeactivated(WindowEvent e)
+	{
+		
+	}
+	public void windowDeiconified(WindowEvent e)
+	{
+		
+	}
+	public void windowIconified(WindowEvent e)
+	{
+		
+	}
+	public void windowOpened(WindowEvent e)
+	{
+		
+	}
+	public void windowActivated(WindowEvent e)
+	{
+		
+	}
+	public void windowClosed(WindowEvent e)
+	{
+		
+	}
+}
+
+/* FILE OPEN DIALOG : To choose apkt file */
+class Chooser extends JFrame 
+{
+	JFileChooser chooser;
+	String fileName;
+
+	public Chooser() 
+	{
+		chooser = new JFileChooser();
+		
+		/* added by rajmohan on july 31, 2014 */
+		/* Sets this apkt file selected by default. Makes it easy to choose apkt file in nearby dirs too */
+		chooser.setSelectedFile(new File("/home/dsladmin/quest/picasso/packets/"));
+		chooser.setDialogTitle("Select bouquet apkt file");
+		int r = chooser.showOpenDialog(new JFrame());
+		if (r == JFileChooser.APPROVE_OPTION) 
+		{
+			fileName = chooser.getSelectedFile().getPath();
+		}
+	}
+}
+
